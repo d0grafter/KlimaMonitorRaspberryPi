@@ -29,12 +29,12 @@ from weather import Weather
 databaseUsername="USER"
 databasePassword="PASSWORD" 
 databaseName="DATABASENAME" 
-databaseTable="DATBASETABLENAME"
+databaseTable="DATABASETABLENAME"
 backupFileLocation="/home/pi/Wurmfarm/dataBackup.txt"
 
-def saveToDataBackup(forecast,temp,hum,moist,btemp,press,alt,dewPoint,currentDate,timeStamp):
+def saveToDataBackup(forecast,trend,temp,hum,moist,btemp,press,alt,dewPoint,spezF,sattF,currentDate,timeStamp):
 	file = open(backupFileLocation, 'a')
-	data = str(forecast) + " " + str(temp) + " " + str(hum) + " " + str(btemp) + " " + str(press) + " " + str(alt) + " " + str(moist) + " " + str(dewPoint) + " " + str(currentDate) + " " + str(timeStamp) + "\n"
+	data = str(forecast) + " " +  str(trend) + " " + str(temp) + " " + str(hum) + " " + str(btemp) + " " + str(press) + " " + str(alt) + " " + str(moist) + " " + str(dewPoint) + " " + str(spezF) + " " + str(sattF) + " " + str(currentDate) + " " + str(timeStamp) + "\n"
 	file.write(data)
 	file.close
 	return "true"
@@ -48,36 +48,39 @@ def getDataBackupToDatabase(dbConnect):
 			items        = []
 			items        = lines.split()
 			forecast     = items[0]
-			temp         = items[1]
-			hum          = items[2]
-			btemp        = items[3]
-			press        = items[4] 
-			alt          = items[5] 
-			moist        = items[6] 
-			dewPoint     = items[7]
-			currentDate  = items[8]
-			timeStamp    = items[9] + " " + items[10]
+			trend        = items[1]
+			temp         = items[2]
+			hum          = items[3]
+			btemp        = items[4]
+			press        = items[5] 
+			alt          = items[6] 
+			moist        = items[7] 
+			dewPoint     = items[8]
+			spezF		 = items[9]
+			sattF        = items[10]
+			currentDate  = items[11]
+			timeStamp    = items[12] + " " + items[13]
 			
-			dbCursor.execute("INSERT INTO " +  databaseTable + " (forecast, temperature, humidity, btemp, pressure, altitude, moisture,dewPoint, dateMeasured, timeStamp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",(forecast,temp,hum,btemp,press,alt,moist,dewPoint,currentDate,timeStamp))
-			print forecast, temp, hum, btemp,press,alt,moist,dewPoint,currentDate, timeStamp
+			dbCursor.execute("INSERT INTO " +  databaseTable + " (forecast,trend, temperature, humidity, btemp, pressure, altitude, moisture,dewPoint,spezF,sattF,dateMeasured, timeStamp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",(forecast,trend,temp,hum,btemp,press,alt,moist,dewPoint,spezF,sattF,currentDate,timeStamp))
+			print forecast,trend, temp, hum, btemp,press,alt,moist,dewPoint,spezF,sattF,currentDate, timeStamp
 			print "Wrote stored data from local file to database"
 	file.close
 	file =  open(backupFileLocation, 'w')
 	file.close
 		
-def saveToDatabase(forecast,temp,hum,moist,btemp,press,alt,dewPoint,currentDate,timeStamp):
+def saveToDatabase(forecast,trend,temp,hum,moist,btemp,press,alt,dewPoint,spezF,sattF,currentDate,timeStamp):
 
 	try:         
 		dbConnect=mdb.connect("127.0.0.1", databaseUsername, databasePassword, databaseName)
 	except:
 		print "Saved data to local file, until the DB connection is back"
-		return saveToDataBackup(forecast,temp,hum,moist,btemp,press,alt,dewPoint,currentDate,timeStamp)
+		return saveToDataBackup(forecast,trend,temp,hum,moist,btemp,press,alt,dewPoint,spezF,sattF,currentDate,timeStamp)
 		
 	with dbConnect:
 		# first get possible backup data to the database    
 		getDataBackupToDatabase(dbConnect)
 		dbCursor = dbConnect.cursor()
-		dbCursor.execute("INSERT INTO " +  databaseTable + " (forecast,temperature,humidity, btemp, pressure, altitude, moisture,dewPoint, dateMeasured, timeStamp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",(forecast,temp,hum,btemp,press,alt,moist,dewPoint,currentDate,timeStamp))
+		dbCursor.execute("INSERT INTO " +  databaseTable + " (forecast,trend,temperature,humidity, btemp, pressure, altitude, moisture,dewPoint,spezF,sattF,dateMeasured, timeStamp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",(forecast,trend,temp,hum,btemp,press,alt,moist,dewPoint,spezF,sattF,currentDate,timeStamp))
 		print "Saved data: ", timeStamp
 		return "true"
 					
@@ -99,8 +102,12 @@ def readInfo():
 		currentDate = datetime.datetime.now().date()
 		timeStamp =  datetime.datetime.now() 
 		forecast = actWeather.checkPress()
+		trend = actWeather.getTrend()
 		dewPoint = actWeather.getDewPoint()
+		spezF = actWeather.getspezF()	
+		sattF = actWeather.getsattF()
 		print "Vorhersage           = %.20s " % forecast
+		print "Trend                = %.1s " % trend
 		print "Temperatur           = %.2f C" % temp
 		print "rel Feuchte          = %.2f " % hum
 		print "Boden Feuchte        = %.2f " % moist 
@@ -108,7 +115,9 @@ def readInfo():
 		print "Luftdruck            = %.2f hPa" % pressure
 		print "Hoehe                = %.2f m" % altitude	
 		print "Taupunkt             = %.2f C" % dewPoint
-		return saveToDatabase(forecast,temp,hum,moist,btemp,pressure,altitude,dewPoint,currentDate,timeStamp)
+		print "spez. Feuchte        = %.2f g/m^3" % spezF
+		print "saett. Feuchte       = %.2f g/m^3" % sattF
+		return saveToDatabase(forecast,trend,temp,hum,moist,btemp,pressure,altitude,dewPoint,spezF,sattF,currentDate,timeStamp)
 
 
 status="false"
