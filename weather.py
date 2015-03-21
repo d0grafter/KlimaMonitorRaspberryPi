@@ -1,4 +1,19 @@
 #!/usr/bin/python
+################################################################################################
+# Name: 		Wetter
+#
+# Beschreibung:	Ermittelt die Sensordaten Temperatur, Luftfeuchtigkeit, Luftdruck, Bodenfeuchtigkeit
+#				mit dem GrovePi+ und RaspberryPi B+ und berechnet die Wettervorhersage
+# Version: 		1.0.0
+# Author: 		Stefan Mayer
+# Author URI: 	http://www.2komma5.org
+# License: 		GPL2
+# License URI: 	http://www.gnu.org/licenses/gpl-2.0.html
+################################################################################################
+# Changelog 
+# 1.0.0 - 	Initial release
+#
+################################################################################################
 import subprocess 
 import re 
 import os 
@@ -9,7 +24,7 @@ import smbus
 import math
 from grove_barometic_sensor import BMP085
 
-#Gewitter 			#12
+#Gewitter 			#-12
 #Regen		 		#0
 #vereinzelt Regen	#1
 #wechselhaft		#2
@@ -32,7 +47,7 @@ class Weather():
 	forecast_trend = 3
 	forecast_max = 6
 	forecast_min = 0
-	forecast_strom = 12
+	forecast_strom = -12
 	dht_sensor_port = 7		# Connect the DHt sensor to port D7
 	temp_correction = - 0.5   # correction of measured temperature
 	moist_sensor_port = 0   # Connect the Moisture sensor to port A0
@@ -49,7 +64,6 @@ class Weather():
 		while i < 12:
 			self.addPress(press)
 			i = i + 1
-		self.actTrend = 1	
 		self.savePressToFile()
 		self.actTrend = 3	
 		self.saveTrendToFile()
@@ -64,7 +78,14 @@ class Weather():
 		
 	def is_non_zero_file(self,fpath):  
 		return True if os.path.isfile(fpath) and os.path.getsize(fpath) > 0 else False
+	def checkForecast(self):
+		# Sturm Warnung bei abfall von mehr als 5 hPa
+		if ( self.checkPress() <= -5 ):
+			return forecast_strom
+		else:
+			return self.checkTrend()
 	def checkPress(self):
+		# Speichert und prueft den Luftdruck ueber 6 Stunden
 		file = open(backupFileLocationPress, 'r')
 		for lines in file:
 			items        = []
@@ -74,21 +95,20 @@ class Weather():
 		oldPress = int(items[0])
 		deltaPress = actPress - oldPress
 		#print actPress, "-", oldPress,"=",deltaPress
-		if ( deltaPress <= -5 ):
-			items[11] = actPress
-			self.press = []
-			i = 0
-			while i < 11:
-				items[i] = items[i+1]
-				i = i + 1
-			i = 0
-			while i < 12:
-				self.addPress(items[i])
-				i = i + 1
-			self.savePressToFile()
-			return forecast_strom
-		else:
-			return self.checkTrend()
+		#neuer Wert an letzte Stelle
+		items[11] = actPress
+		self.press = []
+		i = 0
+		# erste stelle loeschen
+		while i < 11:
+			items[i] = items[i+1]
+			i = i + 1
+		i = 0
+		while i < 12:
+			self.addPress(items[i])
+			i = i + 1
+		self.savePressToFile()
+		return deltaPress
 	def checkTrend(self):		
 		file = open(backupFileLocationTrend, 'r')
 		for lines in file:

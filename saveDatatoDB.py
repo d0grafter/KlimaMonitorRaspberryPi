@@ -28,8 +28,8 @@ from weather import Weather
 
 databaseUsername="USER"
 databasePassword="PASSWORD" 
-databaseName="DATABASENAME" 
-databaseTable="DATABASETABLENAME"
+databaseName="DATABASE" 
+databaseTable="TABLE"
 backupFileLocation="/home/pi/Wurmfarm/dataBackup.txt"
 
 def saveToDataBackup(forecast,trend,temp,hum,moist,btemp,press,alt,dewPoint,spezF,sattF,currentDate,timeStamp):
@@ -101,7 +101,7 @@ def readInfo():
 		moist = actWeather.getMoistData()
 		currentDate = datetime.datetime.now().date()
 		timeStamp =  datetime.datetime.now() 
-		forecast = actWeather.checkPress()
+		forecast = actWeather.checkForecast()
 		trend = actWeather.getTrend()
 		dewPoint = actWeather.getDewPoint()
 		spezF = actWeather.getspezF()	
