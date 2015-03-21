@@ -47,7 +47,7 @@ class Weather():
 	forecast_trend = 3
 	forecast_max = 6
 	forecast_min = 0
-	forecast_strom = -12
+	forecast_storm = -1
 	dht_sensor_port = 7		# Connect the DHt sensor to port D7
 	temp_correction = - 0.5   # correction of measured temperature
 	moist_sensor_port = 0   # Connect the Moisture sensor to port A0
@@ -81,7 +81,7 @@ class Weather():
 	def checkForecast(self):
 		# Sturm Warnung bei abfall von mehr als 5 hPa
 		if ( self.checkPress() <= -5 ):
-			return forecast_strom
+			return forecast_storm
 		else:
 			return self.checkTrend()
 	def checkPress(self):
