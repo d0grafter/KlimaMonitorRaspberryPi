@@ -2,11 +2,11 @@
 ################################################################################################
 # Name: 		Klima Monitor
 #
-# Beschreibung:	Das Projekt “Klima Monitor” ist eine Wettervorhersage basierend auf dem GrovePi+ 
+# Beschreibung:	Das Projekt Klima Monitor ist eine Wettervorhersage basierend auf dem GrovePi+ 
 #               und dem RaspberryPi B+. Es werden mittels Sensoren Temperatur, Luftfeuchtigkeit und
 #				Luftdruck gemessen und eine Vorhersage berechnet.
 #				Das Projekt besteht aus zwei Teilen:
-#				Teil 1 ist das WordPress Plugin “Klima Monitor ” zur Darstellung der Werte und der
+#				Teil 1 ist das WordPress Plugin Klima Monitor zur Darstellung der Werte und der
 #				Wettervorhersage
 #				Teil 2 die Erfassung der Werte und deren Verarbeitung
 # Version: 		1.2.0
