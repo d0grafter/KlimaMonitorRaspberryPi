@@ -1,10 +1,10 @@
 #!/usr/bin/python
 ################################################################################################
-# Name: 		Wurmfarm Klima Monitor
+# Name: 		Klima Monitor
 #
 # Beschreibung:	Ermittelt die Sensordaten Temperatur, Luftfeuchtigkeit, Luftdruck, Bodenfeuchtigkeit
 #				mit dem GrovePi+ und uebermittelt diese an die Wordpress Datenbank
-# Version: 		1.1.0
+# Version: 		1.2.0
 # Author: 		Stefan Mayer
 # Author URI: 	http://www.2komma5.org
 # License: 		GPL2
@@ -15,6 +15,8 @@
 # 1.1.0 - 	Speicherung der Sensordatenin lokale Datei, falls keine Datenbankverbindung besteht
 #			Nach erneutem Aufbau der Verbindung, werden die Daten aus der lokalen Datei 
 #			automatisch in die Datenbank uebernommen
+# 1.1.1 -	Change of package structure
+# 1.2.0 -	Einbindung der Wettervorhersage
 ################################################################################################
 
 import subprocess 
@@ -24,13 +26,15 @@ import sys
 import time 
 import MySQLdb as mdb
 import datetime
-from weather import Weather
+from classes.weather import Weather
 
 databaseUsername="USER"
 databasePassword="PASSWORD" 
-databaseName="DATABASE" 
-databaseTable="TABLE"
-backupFileLocation="/home/pi/Wurmfarm/dataBackup.txt"
+databaseName="DATABASENAME" 
+databaseTable="DATABASETABLE"
+
+path = os.path.dirname(os.path.abspath(sys.argv[0]))
+backupFileLocation= path + "/files/dataBackup.txt"
 
 def saveToDataBackup(forecast,trend,temp,hum,moist,btemp,press,alt,dewPoint,spezF,sattF,currentDate,timeStamp):
 	file = open(backupFileLocation, 'a')

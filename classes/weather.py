@@ -4,7 +4,7 @@
 #
 # Beschreibung:	Ermittelt die Sensordaten Temperatur, Luftfeuchtigkeit, Luftdruck, Bodenfeuchtigkeit
 #				mit dem GrovePi+ und RaspberryPi B+ und berechnet die Wettervorhersage
-# Version: 		1.0.0
+# Version: 		1.0.1
 # Author: 		Stefan Mayer
 # Author URI: 	http://www.2komma5.org
 # License: 		GPL2
@@ -12,7 +12,7 @@
 ################################################################################################
 # Changelog 
 # 1.0.0 - 	Initial release
-#
+# 1.0.1 -   Change of package structure
 ################################################################################################
 import subprocess 
 import re 
@@ -22,7 +22,7 @@ import time
 import grovepi
 import smbus
 import math
-from grove_barometic_sensor import BMP085
+from libs.grove_barometic_sensor import BMP085
 
 #Gewitter 			#-12
 #Regen		 		#0
@@ -53,8 +53,9 @@ class Weather():
 	moist_sensor_port = 0   # Connect the Moisture sensor to port A0
 	bmp = BMP085(0x77, 1)
 	bus = smbus.SMBus(1)    # I2C 1
-	backupFileLocationPress="/home/pi/Wurmfarm/dataPressure.txt"
-	backupFileLocationTrend="/home/pi/Wurmfarm/dataTrend.txt"
+	path = os.path.dirname(os.path.abspath(sys.argv[0]))
+	backupFileLocationPress= path + "/files/dataPressure.txt"
+	backupFileLocationTrend= path + "/files/dataTrend.txt"
 
 	def init(self):
 		self.press = []
