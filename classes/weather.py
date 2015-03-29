@@ -2,8 +2,7 @@
 ################################################################################################
 # Name: 		Wetter
 #
-# Beschreibung:	Ermittelt die Sensordaten Temperatur, Luftfeuchtigkeit, Luftdruck, Bodenfeuchtigkeit
-#				mit dem GrovePi+ und RaspberryPi B+ und berechnet die Wettervorhersage
+# Beschreibung:	Berechnet eine Wettervorhersage
 # Version: 		1.0.1
 # Author: 		Stefan Mayer
 # Author URI: 	http://www.2komma5.org
@@ -12,19 +11,20 @@
 ################################################################################################
 # Changelog 
 # 1.0.0 - 	Initial release
-# 1.0.1 -   Change of package structure
+# 1.0.1 -	Auslagerung der Sensordatenermittlung in eigene Klasse
+#			Speicherung der Daten im JSON-Format
 ################################################################################################
 import subprocess 
 import re 
 import os 
 import sys 
 import time 
-import grovepi
 import smbus
 import math
-from libs.grove_barometic_sensor import BMP085
+import json
+from sensor import Sensor
 
-#Gewitter 			#-12
+#Gewitter 			#-1
 #Regen		 		#0
 #vereinzelt Regen	#1
 #wechselhaft		#2
@@ -32,14 +32,9 @@ from libs.grove_barometic_sensor import BMP085
 #bewoelkt 			#4
 #heiter    			#5
 #sonnig 			#6
+	
 class Weather():
-	global bmp
-	global bus
-	global backupFileLocationPress
-	global backupFileLocationTrend
-	global dht_sensor_port
-	global tem_correction
-	global moist_sensor_port
+	global JSON_File
 	global forecast_trend
 	global forecast_max
 	global forecast_min
@@ -47,100 +42,69 @@ class Weather():
 	forecast_trend = 3
 	forecast_max = 6
 	forecast_min = 0
-	forecast_storm = -1
-	dht_sensor_port = 7		# Connect the DHt sensor to port D7
-	temp_correction = - 0.5   # correction of measured temperature
-	moist_sensor_port = 0   # Connect the Moisture sensor to port A0
-	bmp = BMP085(0x77, 1)
-	bus = smbus.SMBus(1)    # I2C 1
+	forecast_storm = -5
 	path = os.path.dirname(os.path.abspath(sys.argv[0]))
-	backupFileLocationPress= path + "/files/dataPressure.txt"
-	backupFileLocationTrend= path + "/files/dataTrend.txt"
+	JSON_File = path + "/files/forecast.json"
 
 	def init(self):
-		self.press = []
-		i = 0
-		press = self.getPressData()
-		self.trendPress = self.getPressData()
-		while i < 12:
-			self.addPress(press)
-			i = i + 1
-		self.savePressToFile()
-		self.actTrend = 3	
-		self.saveTrendToFile()
+		press = self.sensorInst.getPressData()
+		data = {"forecast": { "pressure": press, "trend": 3},"stormwarning":{"pressure": [press,press,press,press,press,press,press,press,press,press,press,press],"deltaPressure":0}}
+		print "Weather Init"
+		self.saveJSONData(data)
 		
 	def __init__(self):
-				
-		if ((True == self.is_non_zero_file(backupFileLocationPress)) and (True == self.is_non_zero_file(backupFileLocationTrend))): 
-			self.checkPress()
-		else: 
+		self.sensorInst = Sensor()		
+		if (False == self.is_non_zero_file(JSON_File)): 
 			self.init()
-			
-		
+	
 	def is_non_zero_file(self,fpath):  
 		return True if os.path.isfile(fpath) and os.path.getsize(fpath) > 0 else False
 	def checkForecast(self):
-		# Sturm Warnung bei abfall von mehr als 5 hPa
-		if ( self.checkPress() <= -5 ):
-			return forecast_storm
+		data = self.readJSONData()
+		# Sturm Warnung bei abfall von mehr als forecast_storm hPa
+		data = self.checkPress(data)
+		if ( data["stormwarning"]["deltaPressure"] <= forecast_storm ):
+			self.saveJSONData(data)
+			return -1
 		else:
-			return self.checkTrend()
-	def checkPress(self):
+			data = self.checkTrend(data)
+			self.saveJSONData(data)
+			return data["forecast"]["trend"] 
+		
+	def checkPress(self,data):
 		# Speichert und prueft den Luftdruck ueber 6 Stunden
-		file = open(backupFileLocationPress, 'r')
-		for lines in file:
-			items        = []
-			items        = lines.split()
-		file.close	
-		actPress = self.getPressData()
-		oldPress = int(items[0])
+		actPress = self.sensorInst.getPressData()
+		oldPress = data["stormwarning"]["pressure"][0]
 		deltaPress = actPress - oldPress
 		#print actPress, "-", oldPress,"=",deltaPress
 		#neuer Wert an letzte Stelle
-		items[11] = actPress
-		self.press = []
 		i = 0
 		# erste stelle loeschen
 		while i < 11:
-			items[i] = items[i+1]
+			data["stormwarning"]["pressure"][i] = data["stormwarning"]["pressure"][i+1]
 			i = i + 1
-		i = 0
-		while i < 12:
-			self.addPress(items[i])
-			i = i + 1
-		self.savePressToFile()
-		return deltaPress
-	def checkTrend(self):		
-		file = open(backupFileLocationTrend, 'r')
-		for lines in file:
-			items        = []
-			items        = lines.split()
-		file.close	
-		actPress = self.getPressData()
-		actTrend = int(items[0])
-		oldPress = int(items[1])
+		data["stormwarning"]["pressure"][11] = actPress
+		data["stormwarning"]["deltaPressure"] = deltaPress
+		return data
+	def checkTrend(self,data):		
+		actPress = self.sensorInst.getPressData()
+		actTrend = data["forecast"]["trend"]
+		oldPress = data["forecast"]["pressure"]
 		deltaPress = actPress - oldPress
 		self.deltaPress = deltaPress
 		#print actTrend, actPress, "-", oldPress,"=",deltaPress
 		if (deltaPress >= forecast_trend):
 			if (actTrend <> forecast_max):
-				self.actTrend = actTrend + 1
-			self.trendPress = actPress
-			self.saveTrendToFile()
-			return self.actTrend
+				data["forecast"]["trend"] = actTrend + 1
+			data["forecast"]["pressure"] = actPress
 		if (deltaPress <= -forecast_trend):
 			if (actTrend <> forecast_min):
-				self.actTrend = actTrend - 1
-			self.trendPress = actPress
-			self.saveTrendToFile()
-			return self.actTrend
+				data["forecast"]["trend"] = actTrend - 1
+			data["forecast"]["pressure"] = actPress
 		if (deltaPress > -forecast_trend and deltaPress < forecast_trend ):
-			return actTrend			
-		
-	def addPress(self,press):
-		self.press.append(press)
-	def getList(self):
-		return self.sensor
+				data["forecast"]["trend"] = actTrend
+		return data
+
 	def getTrend(self):
 		if (self.deltaPress == 0):
 			return "="
@@ -148,41 +112,12 @@ class Weather():
 			return "+"
 		if (self.deltaPress < 0):
 			return "-"	
-	def getBTempData(self):
-		btemp = bmp.readTemperature()
-		return btemp 
-	def getPressData(self):
-		pressure = bmp.readPressure()/100   # /100 -> hPa
-		return pressure
-	def getAltData(self):
-		altitude = bmp.readAltitude(102000)
-		return altitude
-	def getMoistData(self):
-		#moist = grovepi.analogRead(moist_sensor_port)
-		return 0
-	def getHumData(self):
-		[ temp,hum ] = grovepi.dht(dht_sensor_port,3)
-		return hum
-	def getTempData(self):
-		[ temp,hum ] = grovepi.dht(dht_sensor_port,3)
-		return temp		
-	def savePressToFile(self):
-		file = open(backupFileLocationPress, 'w')
-		for press in self.press:
-			data = str(press) + " "
-			file.write(data)
-		file.close 
-	def saveTrendToFile(self):
-		file = open(backupFileLocationTrend, 'w')
-		data = str(self.actTrend) + " " + str(self.trendPress)
-		file.write(data) 
-		file.close
 	def getDewPoint(self):
-		t = self.getTempData()
-		relF = self.getHumData()
+		t = self.sensorInst.getTempData()
+		relF = self.sensorInst.getHumData()
 		# Ortshoehe
 		hNN = 114
-		pNN = self.getPressData()
+		pNN = self.sensorInst.getPressData()
 		#Luftdruck Ortshoehe
 		pO= pNN-(hNN/(8.7 - hNN * 0.0005))
 		#Luftdicht
@@ -206,6 +141,14 @@ class Weather():
 		return self.spezF
 	def getsattF(self):
 		return self.sattF
+	def readJSONData(self):
+		with open(JSON_File) as data_file:    
+			data = json.load(data_file)
+		return data
+	def saveJSONData(self, data):
+		with open(JSON_File, 'w') as outfile:
+			json.dump(data, outfile, sort_keys = True, indent = 4, ensure_ascii=False)
+		print "Forecast data saved"
 
 
 

@@ -32,6 +32,7 @@ import time
 import MySQLdb as mdb
 import datetime
 from classes.weather import Weather
+from classes.sensor import Sensor
 
 databaseUsername="USER"
 databasePassword="PASSWORD" 
@@ -98,23 +99,23 @@ def saveToDatabase(forecast,trend,temp,hum,moist,btemp,press,alt,dewPoint,spezF,
 def readInfo():
 		
 	dataSaved="false" #keep on reading till you get the info
-	actWeather = Weather()		
-
+	weatherInst = Weather()
+	sensorInst = Sensor()
 	while(dataSaved=="false"):
 		# Get sensor data
-		btemp = actWeather.getBTempData()
-		hum  = actWeather.getHumData()
-		temp =  actWeather.getTempData()
-		pressure = actWeather.getPressData()
-		altitude = actWeather.getAltData()
-		moist = actWeather.getMoistData()
+		btemp = sensorInst.getBTempData()
+		hum  = sensorInst.getHumData()
+		temp =  sensorInst.getTempData()
+		pressure = sensorInst.getPressData()
+		altitude = sensorInst.getAltData()
+		moist = sensorInst.getMoistData()
 		currentDate = datetime.datetime.now().date()
 		timeStamp =  datetime.datetime.now() 
-		forecast = actWeather.checkForecast()
-		trend = actWeather.getTrend()
-		dewPoint = actWeather.getDewPoint()
-		spezF = actWeather.getspezF()	
-		sattF = actWeather.getsattF()
+		forecast = weatherInst.checkForecast()
+		trend = weatherInst.getTrend()
+		dewPoint = weatherInst.getDewPoint()
+		spezF = weatherInst.getspezF()	
+		sattF = weatherInst.getsattF()
 		print "Vorhersage           = %.20s " % forecast
 		print "Trend                = %.1s " % trend
 		print "Temperatur           = %.2f C" % temp
