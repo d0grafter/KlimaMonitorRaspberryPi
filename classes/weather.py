@@ -11,8 +11,9 @@
 ################################################################################################
 # Changelog 
 # 1.0.0 - 	Initial release
-# 1.0.1 -	Auslagerung der Sensordatenermittlung in eigene Klasse
+# 1.1.0 -	Auslagerung der Sensordatenermittlung in eigene Klasse
 #			Speicherung der Daten im JSON-Format
+# 1.1.1 -	FIX - Fehler bei getTrend nach Sturmwarnung 
 ################################################################################################
 import subprocess 
 import re 
@@ -64,6 +65,7 @@ class Weather():
 		# Sturm Warnung bei abfall von mehr als forecast_storm hPa
 		data = self.checkPress(data)
 		if ( data["stormwarning"]["deltaPressure"] <= forecast_storm ):
+		
 			self.saveJSONData(data)
 			return -1
 		else:
@@ -91,7 +93,6 @@ class Weather():
 		actTrend = data["forecast"]["trend"]
 		oldPress = data["forecast"]["pressure"]
 		deltaPress = actPress - oldPress
-		self.deltaPress = deltaPress
 		#print actTrend, actPress, "-", oldPress,"=",deltaPress
 		if (deltaPress >= forecast_trend):
 			if (actTrend <> forecast_max):
@@ -106,11 +107,12 @@ class Weather():
 		return data
 
 	def getTrend(self):
-		if (self.deltaPress == 0):
+		data = self.readJSONData()
+		if (data["stormwarning"]["deltaPressure"] == 0):
 			return "="
-		if	(self.deltaPress > 0):
+		if	(data["stormwarning"]["deltaPressure"] > 0):
 			return "+"
-		if (self.deltaPress < 0):
+		if (data["stormwarning"]["deltaPressure"] < 0):
 			return "-"	
 	def getDewPoint(self):
 		t = self.sensorInst.getTempData()
