@@ -11,9 +11,8 @@
 ################################################################################################
 # Changelog 
 # 1.0.0 - 	Initial release
-# 1.1.0 -	Auslagerung der Sensordatenermittlung in eigene Klasse
+# 1.0.1 -	Auslagerung der Sensordatenermittlung in eigene Klasse
 #			Speicherung der Daten im JSON-Format
-# 1.1.1 -	FIX - Fehler bei getTrend nach Sturmwarnung 
 ################################################################################################
 import subprocess 
 import re 
@@ -60,19 +59,14 @@ class Weather():
 	
 	def is_non_zero_file(self,fpath):  
 		return True if os.path.isfile(fpath) and os.path.getsize(fpath) > 0 else False
+	
 	def checkForecast(self):
 		data = self.readJSONData()
-		# Sturm Warnung bei abfall von mehr als forecast_storm hPa
+		data = self.checkTrend(data)
 		data = self.checkPress(data)
-		if ( data["stormwarning"]["deltaPressure"] <= forecast_storm ):
-		
-			self.saveJSONData(data)
-			return -1
-		else:
-			data = self.checkTrend(data)
-			self.saveJSONData(data)
-			return data["forecast"]["trend"] 
-		
+		self.saveJSONData(data)
+		return data["forecast"]["trend"] 
+
 	def checkPress(self,data):
 		# Speichert und prueft den Luftdruck ueber 6 Stunden
 		actPress = self.sensorInst.getPressData()
@@ -87,6 +81,9 @@ class Weather():
 			i = i + 1
 		data["stormwarning"]["pressure"][11] = actPress
 		data["stormwarning"]["deltaPressure"] = deltaPress
+		# Sturm Warnung bei Abfall von mehr als forecast_storm hPa
+		if ( data["stormwarning"]["deltaPressure"] <= forecast_storm ):
+			data["forecast"]["trend"] = -1
 		return data
 	def checkTrend(self,data):		
 		actPress = self.sensorInst.getPressData()
@@ -94,6 +91,8 @@ class Weather():
 		oldPress = data["forecast"]["pressure"]
 		deltaPress = actPress - oldPress
 		#print actTrend, actPress, "-", oldPress,"=",deltaPress
+		if actTrend < 0:
+			actTrend = 0
 		if (deltaPress >= forecast_trend):
 			if (actTrend <> forecast_max):
 				data["forecast"]["trend"] = actTrend + 1
