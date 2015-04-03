@@ -3,16 +3,10 @@
 # Name: 		Wetter
 #
 # Beschreibung:	Berechnet eine Wettervorhersage
-# Version: 		1.0.1
 # Author: 		Stefan Mayer
 # Author URI: 	http://www.2komma5.org
 # License: 		GPL2
 # License URI: 	http://www.gnu.org/licenses/gpl-2.0.html
-################################################################################################
-# Changelog 
-# 1.0.0 - 	Initial release
-# 1.0.1 -	Auslagerung der Sensordatenermittlung in eigene Klasse
-#			Speicherung der Daten im JSON-Format
 ################################################################################################
 import subprocess 
 import re 
@@ -39,6 +33,8 @@ class Weather():
 	global forecast_max
 	global forecast_min
 	global forecast_storm
+	global trend
+	trend = "="
 	forecast_trend = 3
 	forecast_max = 6
 	forecast_min = 0
@@ -48,7 +44,7 @@ class Weather():
 
 	def init(self):
 		press = self.sensorInst.getPressData()
-		data = {"forecast": { "pressure": press, "trend": 3},"stormwarning":{"pressure": [press,press,press,press,press,press,press,press,press,press,press,press],"deltaPressure":0}}
+		data = {"Trend": trend, "Forecast": 3, "oldPressure": press,"TrendPressure": press, "Pressure": [press,press,press,press,press,press,press,press,press,press,press,press]}
 		print "Weather Init"
 		self.saveJSONData(data)
 		
@@ -65,54 +61,73 @@ class Weather():
 		data = self.checkTrend(data)
 		data = self.checkPress(data)
 		self.saveJSONData(data)
-		return data["forecast"]["trend"] 
+		return data["Forecast"], data["Trend"] 
 
 	def checkPress(self,data):
 		# Speichert und prueft den Luftdruck ueber 6 Stunden
 		actPress = self.sensorInst.getPressData()
-		oldPress = data["stormwarning"]["pressure"][0]
+		oldPress = data["Pressure"][0]
 		deltaPress = actPress - oldPress
 		#print actPress, "-", oldPress,"=",deltaPress
 		#neuer Wert an letzte Stelle
 		i = 0
 		# erste stelle loeschen
 		while i < 11:
-			data["stormwarning"]["pressure"][i] = data["stormwarning"]["pressure"][i+1]
+			data["Pressure"][i] = data["Pressure"][i+1]
 			i = i + 1
-		data["stormwarning"]["pressure"][11] = actPress
-		data["stormwarning"]["deltaPressure"] = deltaPress
+		data["Pressure"][11] = actPress
 		# Sturm Warnung bei Abfall von mehr als forecast_storm hPa
-		if ( data["stormwarning"]["deltaPressure"] <= forecast_storm ):
-			data["forecast"]["trend"] = -1
+		if ( deltaPress <= forecast_storm ):
+			data["Forecast"] = -1
 		return data
 	def checkTrend(self,data):		
 		actPress = self.sensorInst.getPressData()
-		actTrend = data["forecast"]["trend"]
-		oldPress = data["forecast"]["pressure"]
+		actForecast = data["Forecast"]
+		oldPress = data["oldPressure"]
 		deltaPress = actPress - oldPress
 		#print actTrend, actPress, "-", oldPress,"=",deltaPress
-		if actTrend < 0:
-			actTrend = 0
+		if actForecast < 0:
+			actForecast = 0
 		if (deltaPress >= forecast_trend):
-			if (actTrend <> forecast_max):
-				data["forecast"]["trend"] = actTrend + 1
-			data["forecast"]["pressure"] = actPress
+			if (actForecast <> forecast_max):
+				data["Forecast"] = actForecast + 1
+			data["oldPressure"] = actPress
 		if (deltaPress <= -forecast_trend):
-			if (actTrend <> forecast_min):
-				data["forecast"]["trend"] = actTrend - 1
-			data["forecast"]["pressure"] = actPress
+			if (actForecast <> forecast_min):
+				data["Forecast"] = actForecast - 1
+			data["oldPressure"] = actPress
 		if (deltaPress > -forecast_trend and deltaPress < forecast_trend ):
-				data["forecast"]["trend"] = actTrend
+				data["Forecast"] = actForecast
+		print "Vorhersage           = %.20s " % data["Forecast"]
+		# berechne den Trend Luftdruck in einer halben Stunde
+		self.calcLinTrend(data)
+		trendPress = data["TrendPressure"] 
+		deltaPress = trendPress - actPress 
+		if (deltaPress == 0):
+			data["Trend"] = "="
+		if	(deltaPress > 0):
+			data["Trend"] = "+"
+		if (deltaPress < 0):
+			data["Trend"] = "-"
+		print "Trend                = %.1s " % data["Trend"]	
 		return data
 
-	def getTrend(self):
-		data = self.readJSONData()
-		if (data["stormwarning"]["deltaPressure"] == 0):
-			return "="
-		if	(data["stormwarning"]["deltaPressure"] > 0):
-			return "+"
-		if (data["stormwarning"]["deltaPressure"] < 0):
-			return "-"	
+	def calcLinTrend(self,data):
+		# y=mx+b, b=y-mx, m=sum(y1-yn)*(x1-xn)/sum(x1-xn)^2
+		i = 1
+		z = 0
+		n = 0
+		while i < 12:
+			z =  z  + float((data["Pressure"][i-1] - data["Pressure"][i]) * ( i - (i+1)))
+			n = n +  float((i - (i+1))**2)
+			i = i + 1
+		m = float(z/n)
+		b = float(data["Pressure"][11] - m * 12)
+		y = m * 13 + b
+		data["TrendPressure"] = y
+		print "kalk. Luftdruck      = %.2f hPa" % y
+		return data	
+	
 	def getDewPoint(self):
 		t = self.sensorInst.getTempData()
 		relF = self.sensorInst.getHumData()
@@ -137,10 +152,13 @@ class Weather():
 		#Saettigungsfeuchte gramm/Kubikmeter Luft 
 		sattF = (spezF/relF)*100
 		self.sattF = sattF * LD
+		print "Taupunkt             = %.2f C" % TP
 		return TP
 	def getspezF(self):
+		print "spez. Feuchte        = %.2f g/m^3" % self.spezF
 		return self.spezF
 	def getsattF(self):
+		print "saett. Feuchte       = %.2f g/m^3" % self.sattF
 		return self.sattF
 	def readJSONData(self):
 		with open(JSON_File) as data_file:    
@@ -150,6 +168,4 @@ class Weather():
 		with open(JSON_File, 'w') as outfile:
 			json.dump(data, outfile, sort_keys = True, indent = 4, ensure_ascii=False)
 		print "Forecast data saved"
-
-
 

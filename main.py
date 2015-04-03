@@ -9,7 +9,7 @@
 #				Teil 1 ist das WordPress Plugin Klima Monitor zur Darstellung der Werte und der
 #				Wettervorhersage
 #				Teil 2 die Erfassung der Werte und deren Verarbeitung
-# Version: 		1.2.0
+# Version: 		1.3.0
 # Author: 		Stefan Mayer
 # Author URI: 	http://www.2komma5.org
 # License: 		GPL2
@@ -22,6 +22,10 @@
 #			automatisch in die Datenbank uebernommen
 # 1.1.1 -	Change of package structure
 # 1.2.0 -	Einbindung der Wettervorhersage
+# 1.2.1 -	Auslagerung der Sensordatenermittlung in eigene Klasse
+# 1.2.2 -	Speicherung der Wetterdaten im JSON-Format
+# 1.2.3 - 	Fehler in der Luftdruckermittlung, Werte ueber 1200
+# 1.3.0 - 	Trendberechnung duch Trendfunktion ersetzt, WICHTIG: forecast.json manuell loeschen
 ################################################################################################
 
 import subprocess 
@@ -94,8 +98,6 @@ def saveToDatabase(forecast,trend,temp,hum,moist,btemp,press,alt,dewPoint,spezF,
 		print "Saved data: ", timeStamp
 		return "true"
 					
-
-					
 def readInfo():
 		
 	dataSaved="false" #keep on reading till you get the info
@@ -111,22 +113,10 @@ def readInfo():
 		moist = sensorInst.getMoistData()
 		currentDate = datetime.datetime.now().date()
 		timeStamp =  datetime.datetime.now() 
-		forecast = weatherInst.checkForecast()
-		trend = weatherInst.getTrend()
+		forecast,trend = weatherInst.checkForecast()
 		dewPoint = weatherInst.getDewPoint()
 		spezF = weatherInst.getspezF()	
 		sattF = weatherInst.getsattF()
-		print "Vorhersage           = %.20s " % forecast
-		print "Trend                = %.1s " % trend
-		print "Temperatur           = %.2f C" % temp
-		print "rel Feuchte          = %.2f " % hum
-		print "Boden Feuchte        = %.2f " % moist 
-		print "Barometer Temperatur = %.2f C" % btemp
-		print "Luftdruck            = %.2f hPa" % pressure
-		print "Hoehe                = %.2f m" % altitude	
-		print "Taupunkt             = %.2f C" % dewPoint
-		print "spez. Feuchte        = %.2f g/m^3" % spezF
-		print "saett. Feuchte       = %.2f g/m^3" % sattF
 		return saveToDatabase(forecast,trend,temp,hum,moist,btemp,pressure,altitude,dewPoint,spezF,sattF,currentDate,timeStamp)
 
 
