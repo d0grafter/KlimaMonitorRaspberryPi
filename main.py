@@ -26,6 +26,7 @@
 # 1.2.2 -	Speicherung der Wetterdaten im JSON-Format
 # 1.2.3 - 	Fehler in der Luftdruckermittlung, Werte ueber 1200
 # 1.3.0 - 	Trendberechnung duch Trendfunktion ersetzt, WICHTIG: forecast.json manuell loeschen
+# 1.3.1 -	Fehler in der Trendberechnung, nach einer Sturmwarnung, WICHTIG: forecast.json manuell loeschen
 ################################################################################################
 
 import subprocess 

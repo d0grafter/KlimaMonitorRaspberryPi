@@ -13,6 +13,7 @@ import re
 import os 
 import sys 
 import time 
+import datetime
 import smbus
 import math
 import json
@@ -44,7 +45,9 @@ class Weather():
 
 	def init(self):
 		press = self.sensorInst.getPressData()
-		data = {"Trend": trend, "Forecast": 3, "oldPressure": press,"TrendPressure": press, "Pressure": [press,press,press,press,press,press,press,press,press,press,press,press]}
+		timeStamp = str(datetime.datetime.now())
+		data = {"saveTime":timeStamp,"Trend": trend, "Forecast": 3,
+		"oldForecast": 3, "oldPressure": press,"TrendPressure": press, "Pressure": [press,press,press,press,press,press,press,press,press,press,press,press]}
 		print "Weather Init"
 		self.saveJSONData(data)
 		
@@ -68,7 +71,7 @@ class Weather():
 		actPress = self.sensorInst.getPressData()
 		oldPress = data["Pressure"][0]
 		deltaPress = actPress - oldPress
-		#print actPress, "-", oldPress,"=",deltaPress
+		print "checkPress: ", actPress, "-", oldPress,"=",deltaPress
 		#neuer Wert an letzte Stelle
 		i = 0
 		# erste stelle loeschen
@@ -83,9 +86,11 @@ class Weather():
 	def checkTrend(self,data):		
 		actPress = self.sensorInst.getPressData()
 		actForecast = data["Forecast"]
+		if (actForecast == -1):
+			actForecast = data["oldForecast"]
 		oldPress = data["oldPressure"]
 		deltaPress = actPress - oldPress
-		#print actTrend, actPress, "-", oldPress,"=",deltaPress
+		print "checkTrend: ", actPress, "-", oldPress,"=",deltaPress
 		if actForecast < 0:
 			actForecast = 0
 		if (deltaPress >= forecast_trend):
@@ -98,6 +103,7 @@ class Weather():
 			data["oldPressure"] = actPress
 		if (deltaPress > -forecast_trend and deltaPress < forecast_trend ):
 				data["Forecast"] = actForecast
+		data["oldForecast"] = data["Forecast"]
 		print "Vorhersage           = %.20s " % data["Forecast"]
 		# berechne den Trend Luftdruck in einer halben Stunde
 		self.calcLinTrend(data)
@@ -165,7 +171,9 @@ class Weather():
 			data = json.load(data_file)
 		return data
 	def saveJSONData(self, data):
+		timeStamp = datetime.datetime.now()
+		data["saveTime"] = str(timeStamp)
 		with open(JSON_File, 'w') as outfile:
 			json.dump(data, outfile, sort_keys = True, indent = 4, ensure_ascii=False)
-		print "Forecast data saved"
+		print "Forecast data saved", str(timeStamp)
 
