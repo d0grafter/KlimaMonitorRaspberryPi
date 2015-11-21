@@ -9,7 +9,7 @@
 #				Teil 1 ist das WordPress Plugin Klima Monitor zur Darstellung der Werte und der
 #				Wettervorhersage
 #				Teil 2 die Erfassung der Werte und deren Verarbeitung
-# Version: 		1.4.0
+# Version: 		1.4.1
 # Author: 		Stefan Mayer
 # Author URI: 	http://www.2komma5.org
 # License: 		GPL2
@@ -28,6 +28,7 @@
 # 1.3.0 - 	Trendberechnung duch Trendfunktion ersetzt, WICHTIG: forecast.json manuell loeschen
 # 1.3.1 -	Fehler in der Trendberechnung, nach einer Sturmwarnung, WICHTIG: forecast.json manuell loeschen
 # 1.4.0 -   Uebermittlung der Sensordaten an Telegram Bot
+# 1.4.1 -   Uebermittlung der Sensordaten an Telegram Bot mit Vorhersage und Icon
 ################################################################################################
 
 import subprocess 
