@@ -9,7 +9,7 @@
 #				Teil 1 ist das WordPress Plugin Klima Monitor zur Darstellung der Werte und der
 #				Wettervorhersage
 #				Teil 2 die Erfassung der Werte und deren Verarbeitung
-# Version: 		1.3.0
+# Version: 		1.4.0
 # Author: 		Stefan Mayer
 # Author URI: 	http://www.2komma5.org
 # License: 		GPL2
@@ -27,6 +27,7 @@
 # 1.2.3 - 	Fehler in der Luftdruckermittlung, Werte ueber 1200
 # 1.3.0 - 	Trendberechnung duch Trendfunktion ersetzt, WICHTIG: forecast.json manuell loeschen
 # 1.3.1 -	Fehler in der Trendberechnung, nach einer Sturmwarnung, WICHTIG: forecast.json manuell loeschen
+# 1.4.0 -   Uebermittlung der Sensordaten an Telegram Bot
 ################################################################################################
 
 import subprocess 
@@ -38,11 +39,13 @@ import MySQLdb as mdb
 import datetime
 from classes.weather import Weather
 from classes.sensor import Sensor
+from classes.telebot import TeleBot
 
 databaseUsername="USER"
 databasePassword="PASSWORD" 
 databaseName="DATABASENAME" 
 databaseTable="DATABASETABLE"
+token='token'
 
 path = os.path.dirname(os.path.abspath(sys.argv[0]))
 backupFileLocation= path + "/files/dataBackup.txt"
@@ -104,6 +107,7 @@ def readInfo():
 	dataSaved="false" #keep on reading till you get the info
 	weatherInst = Weather()
 	sensorInst = Sensor()
+	botInst = TeleBot()
 	while(dataSaved=="false"):
 		# Get sensor data
 		btemp = sensorInst.getBTempData()
@@ -118,6 +122,8 @@ def readInfo():
 		dewPoint = weatherInst.getDewPoint()
 		spezF = weatherInst.getspezF()	
 		sattF = weatherInst.getsattF()
+        # Talk to Telegram Bot		
+		botInst.talkToTeleBot(token,forecast,trend,temp,hum,moist,btemp,pressure,altitude,dewPoint,spezF,sattF,currentDate,timeStamp)
 		return saveToDatabase(forecast,trend,temp,hum,moist,btemp,pressure,altitude,dewPoint,spezF,sattF,currentDate,timeStamp)
 
 
