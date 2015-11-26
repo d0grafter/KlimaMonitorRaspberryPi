@@ -55,7 +55,7 @@ def saveToDataBackup(forecast,trend,temp,hum,moist,btemp,press,alt,dewPoint,spez
 	data = str(forecast) + " " +  str(trend) + " " + str(temp) + " " + str(hum) + " " + str(btemp) + " " + str(press) + " " + str(alt) + " " + str(moist) + " " + str(dewPoint) + " " + str(spezF) + " " + str(sattF) + " " + str(currentDate) + " " + str(timeStamp) + "\n"
 	file.write(data)
 	file.close
-	return "true"
+	return "True"
 
 def getDataBackupToDatabase(dbConnect):
 	
@@ -100,14 +100,14 @@ def saveToDatabase(forecast,trend,temp,hum,moist,btemp,press,alt,dewPoint,spezF,
 		dbCursor = dbConnect.cursor()
 		dbCursor.execute("INSERT INTO " +  databaseTable + " (forecast,trend,temperature,humidity, btemp, pressure, altitude, moisture,dewPoint,spezF,sattF,dateMeasured, timeStamp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",(forecast,trend,temp,hum,btemp,press,alt,moist,dewPoint,spezF,sattF,currentDate,timeStamp))
 		print "Saved data: ", timeStamp
-		return "true"
+		return "True"
 					
 def readInfo():
 		
-	dataSaved="false" #keep on reading till you get the info
+	dataSaved="False" #keep on reading till you get the info
 	weatherInst = Weather()
 	sensorInst = Sensor()
-	while(dataSaved=="false"):
+	while(dataSaved=="False"):
 		# Get sensor data
 		btemp = sensorInst.getBTempData()
 		hum  = sensorInst.getHumData()
@@ -121,9 +121,10 @@ def readInfo():
 		dewPoint = weatherInst.getDewPoint()
 		spezF = weatherInst.getspezF()	
 		sattF = weatherInst.getsattF()
-        return saveToDatabase(forecast,trend,temp,hum,moist,btemp,pressure,altitude,dewPoint,spezF,sattF,currentDate,timeStamp)
+		return saveToDatabase(forecast,trend,temp,hum,moist,btemp,pressure,altitude,dewPoint,spezF,sattF,currentDate,timeStamp)
 
 
-status="false"
-while(status!="true"):
+
+status="False"
+while(status!="True"):
 	status=readInfo()
