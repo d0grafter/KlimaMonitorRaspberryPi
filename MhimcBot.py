@@ -12,14 +12,24 @@
 ################################################################################################
 # Changelog 
 # 1.0.0 - 	Initial release
+# 1.1.0 -   Camera Pi
 ################################################################################################
 import logging
 import subprocess 
 import telegram
+import json
+import time
+import datetime as dt
+import picamera
 from classes.weather import Weather
 from classes.sensor import Sensor
 
 token = 'TOKEN'
+picture = 'Wetter.jpg'
+bot = telegram.Bot(token)
+camera = picamera.PiCamera()
+camera.vflip = True
+camera.hflip = True
 
 def getForecastText(forecast):
 	if forecast == 6:
@@ -62,6 +72,22 @@ def getForecastIcon(forecast):
 	else:
 		icon ="else"
 	return icon	
+
+def getPicture(chat_id):
+	pic_time = dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+	camera.annotate_text = pic_time
+	try:
+		camera.capture(picture)
+		time.sleep(4)
+		photo = open('/home/pi/klimamonitor/Wetter.jpg', 'rb')
+		bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.UPLOAD_PHOTO)
+		bot.sendPhoto(chat_id=chat_id, photo=photo)
+		photo.close()
+		return pic_time
+	except:
+		return 'Cam Error'
+
+	
 	
 def getWeather():
 	weatherInst = Weather()
@@ -85,34 +111,49 @@ def check_chat_id(chat_id):
 	return bol
 	
 def main():
-    logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    bot = telegram.Bot(token)
-    LAST_UPDATE_ID = bot.getUpdates()[-1].update_id  # Get lastest update
+	logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    while True:
-        for update in bot.getUpdates(offset=LAST_UPDATE_ID, timeout=10):
-			text = update.message.text
-			chat_id = update.message.chat.id
-			#print chat_id
-			update_id = update.update_id
+	
+	try:
+		LAST_UPDATE_ID = bot.getUpdates()[-1].update_id  # Get lastest update
+		
+		
+		while True:
+			for update in bot.getUpdates(offset=LAST_UPDATE_ID, timeout=10):
+				text = update.message.text
+				chat_id = update.message.chat.id
+				print update.message
+				error_msg = 'Achtung eine invalide Chat Id wurde verwendet'
+				update_id = update.update_id
 			
-			if False == check_chat_id(chat_id):
-				bot.sendMessage(chat_id=chat_id, text='Invalid Chat Id')
-				LAST_UPDATE_ID = update_id + 1
-				break
+				if False == check_chat_id(chat_id):
+					bot.sendMessage(chat_id=chat_id, text='Invalid Chat Id')
+					bot.sendMessage(chat_id='18051286', text=error_msg)
+					LAST_UPDATE_ID = update_id + 1
+					break
 
-			if text:
-				bot.sendMessage(chat_id=chat_id, text=command(text))
-				LAST_UPDATE_ID = update_id + 1
+				if text:
+					bot.sendMessage(chat_id=chat_id, text=command(chat_id,text))
+					LAST_UPDATE_ID = update_id + 1
+	except:
+		print 'noch nix in der Update Liste'
+	
 
-
-def command(command_txt):
+def command(chat_id,command_txt):
+	bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.TYPING)
 	if command_txt == '/wetter':
-		msg = getWeather()
+		msg = getWeather()		
+	elif command_txt == '/pic':
+		msg = getPicture(chat_id)	
 	else:
-		msg = 'Wrong command'
+		msg = 'Falscher Befehl'
 	return msg
 
 if __name__ == '__main__':
-    main()
+	status="False"
+	while(status!="True"):
+		status=main()
+		time.sleep(5)
+
+	
+
