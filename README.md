@@ -40,6 +40,6 @@ License URI: 	http://www.gnu.org/licenses/gpl-2.0.html
 
 1.3.1 -	Fehler in der Trendberechnung, nach einer Sturmwarnung, WICHTIG: forecast.json manuell loeschen
 
-1.4.0 - Uebermittlung der Sensordaten an Telegram Bot
+1.4.0 - Uebermittlung der Sensordaten an Telegram Bot in eigenem Programm MhimcBot.py
 ################################################################################################
 

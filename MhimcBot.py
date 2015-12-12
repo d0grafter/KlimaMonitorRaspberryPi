@@ -4,7 +4,7 @@
 #
 # Beschreibung:	Kommuniziert mit Telegram Bot, die Chat_ID und der Token muss eingetragen werden
 #               
-# Version: 		1.0.0
+# Version: 		1.3.0
 # Author: 		Stefan Mayer
 # Author URI: 	http://www.2komma5.org
 # License: 		GPL2
@@ -12,25 +12,44 @@
 ################################################################################################
 # Changelog 
 # 1.0.0 - 	Initial release
-# 1.1.0 -   Camera Pi
+# 1.1.0 -   Camera Pi - Foto
+# 1.2.0 -	Video sudo apt-get install gpac
+# 1.3.0 -	Refactoring to python-telegram-bot 3.0
 ################################################################################################
+import sys
 import logging
 import subprocess 
-import telegram
 import json
 import time
 import datetime as dt
 import picamera
+import telegram
+from subprocess import call
 from classes.weather import Weather
 from classes.sensor import Sensor
+from telegram import Updater
 
-token = 'TOKEN'
-picture = 'Wetter.jpg'
-bot = telegram.Bot(token)
+picture = '/home/pi/klimamonitor/files/Wetter.jpg'
+video_file = '/home/pi/klimamonitor/files/video.h264'
+mp4 = '/home/pi/klimamonitor/files/video.mp4'
 camera = picamera.PiCamera()
 camera.vflip = True
 camera.hflip = True
 
+# Enable logging
+root = logging.getLogger()
+root.setLevel(logging.INFO)
+
+ch = logging.StreamHandler(sys.stdout)
+ch.setLevel(logging.DEBUG)
+formatter = \
+    logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+root.addHandler(ch)
+
+logger = logging.getLogger(__name__)
+
+# helper functions
 def getForecastText(forecast):
 	if forecast == 6:
 		 text = "sonnig"
@@ -72,22 +91,6 @@ def getForecastIcon(forecast):
 	else:
 		icon ="else"
 	return icon	
-
-def getPicture(chat_id):
-	pic_time = dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-	camera.annotate_text = pic_time
-	try:
-		camera.capture(picture)
-		time.sleep(4)
-		photo = open('/home/pi/klimamonitor/Wetter.jpg', 'rb')
-		bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.UPLOAD_PHOTO)
-		bot.sendPhoto(chat_id=chat_id, photo=photo)
-		photo.close()
-		return pic_time
-	except:
-		return 'Cam Error'
-
-	
 	
 def getWeather():
 	weatherInst = Weather()
@@ -101,59 +104,106 @@ def getWeather():
 	text = "Vorhersage: " + getForecastText(forecast) + " " + getForecastIcon(forecast) + "\nTrend: " + trend + "\nLuftdruck = %.2f hPa" % pressure + "\nrel Feuchte = %.2f " % hum  + "\nTemperatur = %.2f C" % temp
 	return text 
 
-		
-def check_chat_id(chat_id):
-	ok_list = [CHATID]  
-	if chat_id in ok_list:
+# check chat ID in list		
+def check_chat_id(bot, update):
+	ok_list = [CHATIDLIST] 
+	print "ChatID", update.message.chat_id
+	if update.message.chat_id in ok_list:
 		bol = True
 	else:
 		bol = False
+		bot.sendMessage(chat_id=update.message.chat_id, text='Invalid Chat Id')
+		bot.sendMessage(chat_id='OWNCHATID', text='Achtung eine invalide Chat Id wurde verwendet')
 	return bol
-	
-def main():
-	logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+		
+# command handlers
+def	start(bot, update):
+	bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
+	bot.sendMessage(update.message.chat_id, text='Bot wurde gestartet')
+	bot.sendMessage(update.message.chat_id, text='Hilfe \n /wetter - Wettervorhersage \n /bild - aktuelles Bild \n /video - aktuelles Video \n /help - Hilfe')
 
+def	help(bot, update):
+	if False == check_chat_id(bot, update):
+		return
+	bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
+	bot.sendMessage(update.message.chat_id, text='Hilfe \n /wetter - Wettervorhersage \n /bild - aktuelles Bild \n /video - aktuelles Video \n /help - Hilfe')
+
+def	wetter(bot, update):
+	if False == check_chat_id(bot, update):
+		return
+	bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
+	bot.sendMessage(update.message.chat_id, text=getWeather())
 	
+def	bild(bot, update):
+	if False == check_chat_id(bot, update):
+		return
+	bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
+	pic_time = dt.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+	camera.annotate_text = pic_time
+	#camera.iso = 800
 	try:
-		LAST_UPDATE_ID = bot.getUpdates()[-1].update_id  # Get lastest update
-		
-		
-		while True:
-			for update in bot.getUpdates(offset=LAST_UPDATE_ID, timeout=10):
-				text = update.message.text
-				chat_id = update.message.chat.id
-				print update.message
-				error_msg = 'Achtung eine invalide Chat Id wurde verwendet'
-				update_id = update.update_id
-			
-				if False == check_chat_id(chat_id):
-					bot.sendMessage(chat_id=chat_id, text='Invalid Chat Id')
-					bot.sendMessage(chat_id='18051286', text=error_msg)
-					LAST_UPDATE_ID = update_id + 1
-					break
-
-				if text:
-					bot.sendMessage(chat_id=chat_id, text=command(chat_id,text))
-					LAST_UPDATE_ID = update_id + 1
-	except:
-		print 'noch nix in der Update Liste'
-	
-
-def command(chat_id,command_txt):
-	bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.TYPING)
-	if command_txt == '/wetter':
-		msg = getWeather()		
-	elif command_txt == '/pic':
-		msg = getPicture(chat_id)	
-	else:
-		msg = 'Falscher Befehl'
-	return msg
-
-if __name__ == '__main__':
-	status="False"
-	while(status!="True"):
-		status=main()
+		camera.capture(picture)
 		time.sleep(5)
+		photo = open(picture, 'rb')
+		bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.UPLOAD_PHOTO)
+		bot.sendPhoto(chat_id=update.message.chat_id, photo=photo)
+		photo.close()
+		bot.sendMessage(update.message.chat_id, text=pic_time)
+	except:
+		bot.sendMessage(update.message.chat_id, text='Cam Error')
+	
+def video(bot, update):
+	if False == check_chat_id(bot, update):
+		return
+	bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
+	vid_time = dt.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+	camera.annotate_text = vid_time
+	try:
+		camera.start_recording(video_file)
+		bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.RECORD_VIDEO)
+		camera.wait_recording(5)
+		camera.stop_recording()
+		#convert video
+		call ('MP4Box -fps 30 /home/pi/klimamonitor/files/video.h264 /home/pi/klimamonitor/files/video.mp4',shell=True)
+		#print resultCode
+		time.sleep(5)
+		stream = open(mp4, 'rb')
+		bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.UPLOAD_VIDEO)
+		bot.sendVideo(chat_id=update.message.chat_id, video=stream)
+		stream.close()
+		bot.sendMessage(update.message.chat_id, text=vid_time)
+	except:
+		bot.sendMessage(update.message.chat_id, text='Cam Error')
+
+def echo(bot, update):
+   	if False == check_chat_id(bot, update):
+		return
+	bot.sendMessage(update.message.chat_id, text=update.message.text)
+
+def error(bot, update, error):
+    logger.warn('Update "%s" caused error "%s"' % (update, error))		
+
+def main():
+	#create event handler
+	updater = Updater(token = TOKEN)
+	dispatcher = updater.dispatcher
+	# register handlers
+	dispatcher.addTelegramCommandHandler("start", start)
+	dispatcher.addTelegramCommandHandler("help", help)
+	dispatcher.addTelegramCommandHandler("bild", bild)
+	dispatcher.addTelegramCommandHandler("wetter", wetter)
+	dispatcher.addTelegramCommandHandler("video", video)
+	
+	# on noncommand
+	dispatcher.addTelegramMessageHandler(echo)
+	# Error handler
+	dispatcher.addErrorHandler(error)
+	#start BOT
+	updater.start_polling(timeout=5)
+	updater.idle()
+	
+if __name__ == '__main__':
+	main()
 
 	
 
