@@ -106,14 +106,14 @@ def getWeather():
 
 # check chat ID in list		
 def check_chat_id(bot, update):
-	ok_list = [CHATIDLIST] 
+	ok_list = [OWNCHATID]
 	print "ChatID", update.message.chat_id
 	if update.message.chat_id in ok_list:
 		bol = True
 	else:
 		bol = False
 		bot.sendMessage(chat_id=update.message.chat_id, text='Invalid Chat Id')
-		bot.sendMessage(chat_id='OWNCHATID', text='Achtung eine invalide Chat Id wurde verwendet')
+		bot.sendMessage(chat_id='OWNCHATID', text='Chat Id: ' + str(update.message.chat_id) + '\n Vorname: ' + str(update.message.from_user.first_name) + ' Nachname: ' + str(update.message.from_user.last_name) + '\n Username: ' + str(update.message.from_user.username))
 	return bol
 		
 # command handlers
@@ -178,14 +178,17 @@ def video(bot, update):
 def echo(bot, update):
    	if False == check_chat_id(bot, update):
 		return
-	bot.sendMessage(update.message.chat_id, text=update.message.text)
+	bot.sendMessage(update.message.chat_id, text='Papagei Lora: ' + update.message.text)
 
 def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update, error))		
 
+def unknown(bot, update):
+   bot.sendMessage(chat_id=update.message.chat_id, text="Dieser Befehl ist nicht bekannt. Bitte in /help nachschauen!")
+	
 def main():
 	#create event handler
-	updater = Updater(token = TOKEN)
+	updater = Updater(token = 'OWNTOKEN')
 	dispatcher = updater.dispatcher
 	# register handlers
 	dispatcher.addTelegramCommandHandler("start", start)
@@ -193,8 +196,9 @@ def main():
 	dispatcher.addTelegramCommandHandler("bild", bild)
 	dispatcher.addTelegramCommandHandler("wetter", wetter)
 	dispatcher.addTelegramCommandHandler("video", video)
-	
+    	
 	# on noncommand
+	dispatcher.addUnknownTelegramCommandHandler(unknown)
 	dispatcher.addTelegramMessageHandler(echo)
 	# Error handler
 	dispatcher.addErrorHandler(error)
