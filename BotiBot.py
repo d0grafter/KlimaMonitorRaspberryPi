@@ -2,9 +2,10 @@
 ################################################################################################
 # Name: 		Boti
 #
-# Beschreibung:	Kommuniziert mit Telegram Bot, die Chat_ID und der Token muss eingetragen werden
-#               
-# Version: 		1.3.0
+# Beschreibung:	Telegram Bot
+#               Erlaubte Chat_ID's und Token muss in token.json eingetragen werden               
+#
+# Version: 		1.4.0
 # Author: 		Stefan Mayer
 # Author URI: 	http://www.2komma5.org
 # License: 		GPL2
@@ -15,6 +16,7 @@
 # 1.1.0 -   Camera Pi - Foto
 # 1.2.0 -	Video sudo apt-get install gpac
 # 1.3.0 -	Refactoring to python-telegram-bot 3.0
+# 1.4.0 -   Auslagerung der Security Daten (Token, erlaubte ChatID)
 ################################################################################################
 import sys
 import logging
@@ -29,6 +31,7 @@ from classes.weather import Weather
 from classes.sensor import Sensor
 from telegram import Updater
 
+JSON_File = path + "/files/token.json"
 picture = '/home/pi/klimamonitor/files/Wetter.jpg'
 video_file = '/home/pi/klimamonitor/files/video.h264'
 mp4 = '/home/pi/klimamonitor/files/video.mp4'
@@ -50,6 +53,12 @@ root.addHandler(ch)
 logger = logging.getLogger(__name__)
 
 # helper functions
+def readJSONData():
+	with open(JSON_File) as data_file:    
+		data = json.load(data_file)
+	print data
+	return data
+	
 def getForecastText(forecast):
 	if forecast == 6:
 		 text = "sonnig"
@@ -106,7 +115,7 @@ def getWeather():
 
 # check chat ID in list		
 def check_chat_id(bot, update):
-	ok_list = [OWNCHATID]
+	ok_list = sec["ChatId"]
 	print "ChatID", update.message.chat_id
 	if update.message.chat_id in ok_list:
 		bot.sendMessage(update.message.chat_id, text='Hallo ' + str(update.message.from_user.first_name)+ ', Boti wird Dir gleich antworten')
@@ -114,7 +123,7 @@ def check_chat_id(bot, update):
 	else:
 		bol = False
 		bot.sendMessage(chat_id=update.message.chat_id, text='Invalid Chat Id')
-		bot.sendMessage(chat_id='OWNCHATID', text='Chat Id: ' + str(update.message.chat_id) + '\n Vorname: ' + str(update.message.from_user.first_name) + ' Nachname: ' + str(update.message.from_user.last_name) + '\n Username: ' + str(update.message.from_user.username))
+		bot.sendMessage(chat_id=sec["ChatId"][0], text='Chat Id: ' + str(update.message.chat_id) + '\n Vorname: ' + str(update.message.from_user.first_name) + ' Nachname: ' + str(update.message.from_user.last_name) + '\n Username: ' + str(update.message.from_user.username))
 	return bol
 		
 # command handlers
@@ -179,8 +188,8 @@ def video(bot, update):
 def echo(bot, update):
    	if False == check_chat_id(bot, update):
 		return
-	bot.sendMessage(update.message.chat_id, text='Papagei Lora: ' + update.message.text)
-
+	#bot.sendMessage(update.message.chat_id, text='Papagei Lora: ' + update.message.text)
+	
 def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update, error))		
 
@@ -188,8 +197,11 @@ def unknown(bot, update):
    bot.sendMessage(chat_id=update.message.chat_id, text="Dieser Befehl ist nicht bekannt. Bitte in /help nachschauen!")
 	
 def main():
+    # security data
+	global sec 
+	sec = readJSONData()
 	#create event handler
-	updater = Updater(token = 'OWNTOKEN')
+	updater = Updater(token = sec["Token"])
 	dispatcher = updater.dispatcher
 	# register handlers
 	dispatcher.addTelegramCommandHandler("start", start)
