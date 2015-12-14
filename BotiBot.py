@@ -23,6 +23,7 @@ import logging
 import subprocess 
 import json
 import time
+import os
 import datetime as dt
 import picamera
 import telegram
@@ -31,6 +32,7 @@ from classes.weather import Weather
 from classes.sensor import Sensor
 from telegram import Updater
 
+path = os.path.dirname(os.path.abspath(sys.argv[0]))
 JSON_File = path + "/files/token.json"
 picture = '/home/pi/klimamonitor/files/Wetter.jpg'
 video_file = '/home/pi/klimamonitor/files/video.h264'
