@@ -10,8 +10,8 @@
 #				Wettervorhersage
 #				Teil 2 die Erfassung der Werte und deren Verarbeitung
 # Version: 		1.5.0
-# Author: 		Stefan Mayer
-# Author URI: 	http://www.2komma5.org
+# Author: 		Dogcrafter
+# Author URI: 	https://blog.dogcrafter.de
 # License: 		GPL2
 # License URI: 	http://www.gnu.org/licenses/gpl-2.0.html
 ################################################################################################

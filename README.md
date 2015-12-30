@@ -10,9 +10,9 @@ Das Projekt besteht aus zwei Teilen:
 	Teil 2 die Erfassung der Werte und deren Verarbeitung
 Version: 	1.4.0
 
-Author: 	Stefan Mayer
+Author: 	Dogcrafter
 
-Author URI:	http://www.2komma5.org
+Author URI:	https://blog.dogcrafter.de
 
 License: 	GPL2
 
