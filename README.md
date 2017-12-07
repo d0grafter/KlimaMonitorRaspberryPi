@@ -12,7 +12,7 @@ Version: 	1.4.0
 
 Author: 	Dogcrafter
 
-Author URI:	https://blog.dogcrafter.de
+Author URI:	https://www.tipi-camping.de
 
 License: 	GPL2
 
