@@ -11,8 +11,8 @@
 #				Teil 2 die Erfassung der Werte und deren Verarbeitung
 # Version: 		1.3.1
 # Author: 		Dogcrafter
-# Author URI: 	https://blog.dogcrafter.de
-# License: 		GPL2
+# Author URI: 	https://www.tipi-camping.de
+# License: 	GPL2
 # License URI: 	http://www.gnu.org/licenses/gpl-2.0.html
 ################################################################################################
 # Changelog 
