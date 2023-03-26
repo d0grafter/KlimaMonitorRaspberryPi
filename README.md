@@ -10,7 +10,7 @@ Das Projekt besteht aus zwei Teilen:
 	Teil 2 die Erfassung der Werte und deren Verarbeitung
 Version: 	1.4.0
 
-Author: 	Dogcrafter
+Author: 	D0gcrafter
 
 Author URI:	https://www.tipi-camping.de
 
